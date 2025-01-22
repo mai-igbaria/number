@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة الرياضيات</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f8ff;
+            overflow: hidden;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            position: relative;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #score, #time {
+            font-size: 20px;
+            margin: 10px 0;
+        }
+        .hidden {
+            display: none;
+        }
+        .large-text {
+            font-size: 48px;
+            font-weight: bold;
+            color: #333;
+        }
+        .input-name {
+            margin-bottom: 20px;
+        }
+        .animated {
+            animation: bounce 1.5s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+        .progress-bar {
+            height: 20px;
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress {
+            height: 100%;
+            background-color: #4caf50;
+            width: 0;
+            transition: width 0.5s ease;
+        }
+        .firework {
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, gold, orange, red);
+            animation: firework 1s ease-out;
+        }
+        @keyframes firework {
+            0% { transform: scale(0.5); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+        .feedback {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .correct {
+            color: green;
+        }
+        .incorrect {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>لعبة الرياضيات: الأعداد الموجهة</h1>
+        <div class="input-name">
+            <label for="playerName">ادخل اسمك:</label>
+            <input type="text" id="playerName" placeholder="اسم اللاعب">
+        </div>
+        <p id="question" class="large-text">اضغط على "ابدأ" لبدء اللعبة!</p>
+        <div id="options">
+            <button onclick="checkAnswer(0)" id="option0" class="animated">الخيار 1</button>
+            <button onclick="checkAnswer(1)" id="option1" class="animated">الخيار 2</button>
+            <button onclick="checkAnswer(2)" id="option2" class="animated">الخيار 3</button>
+            <button onclick="checkAnswer(3)" id="option3" class="animated">الخيار 4</button>
+        </div>
+        <p id="score">النقاط: 0</p>
+        <p id="time">الوقت: 0 ثانية</p>
+        <div class="progress-bar">
+            <div id="progress" class="progress"></div>
+        </div>
+        <button id="startButton" onclick="startGame()">ابدأ</button>
+        <p id="feedback" class="feedback hidden"></p>
+    </div>
+
+    <script>
+        let score = 0;
+        let time = 0;
+        let correctAnswer = 0;
+        let timerInterval;
+
+        function generateQuestion() {
+            const num1 = Math.floor(Math.random() * 21) - 10;
+            const num2 = Math.floor(Math.random() * 21) - 10;
+            const operation = Math.random() > 0.5 ? '+' : '-';
+            correctAnswer = operation === '+' ? num1 + num2 : num1 - num2;
+
+            document.getElementById('question').textContent = `What is ${num1} ${operation} ${num2}?`;
+            generateOptions(correctAnswer);
+        }
+
+        function generateOptions(correct) {
+            const options = [];
+            const correctIndex = Math.floor(Math.random() * 4);
+
+            for (let i = 0; i < 4; i++) {
+                if (i === correctIndex) {
+                    options.push(correct);
+                } else {
+                    let randomOption;
+                    do {
+                        randomOption = Math.floor(Math.random() * 41) - 20;
+                    } while (options.includes(randomOption) || randomOption === correct);
+                    options.push(randomOption);
+                }
+            }
+
+            options.forEach((option, index) => {
+                document.getElementById(`option${index}`).textContent = option;
+            });
+        }
+
+        function checkAnswer(selectedIndex) {
+            const selectedValue = parseInt(document.getElementById(`option${selectedIndex}`).textContent);
+            const feedback = document.getElementById('feedback');
+
+            if (selectedValue === correctAnswer) {
+                score += 5;
+                document.getElementById('score').textContent = `النقاط: ${score}`;
+                updateProgress();
+                createFirework(selectedIndex);
+                feedback.textContent = "إجابة صحيحة!";
+                feedback.classList.remove('hidden', 'incorrect');
+                feedback.classList.add('correct');
+
+                if (score >= 100) {
+                    endGame();
+                    return;
+                }
+            } else {
+                feedback.textContent = "إجابة خاطئة!";
+                feedback.classList.remove('hidden', 'correct');
+                feedback.classList.add('incorrect');
+                playErrorSound();
+            }
+
+            setTimeout(() => {
+                feedback.classList.add('hidden');
+                generateQuestion();
+            }, 1000);
+        }
+
+        function updateProgress() {
+            const progressBar = document.getElementById('progress');
+            const progressPercentage = (score / 100) * 100;
+            progressBar.style.width = progressPercentage + '%';
+        }
+
+        function createFirework(buttonIndex) {
+            const button = document.getElementById(`option${buttonIndex}`);
+            const rect = button.getBoundingClientRect();
+
+            const firework = document.createElement('div');
+            firework.classList.add('firework');
+            firework.style.left = `${rect.left + rect.width / 2}px`;
+            firework.style.top = `${rect.top + rect.height / 2}px`;
+            document.body.appendChild(firework);
+            setTimeout(() => firework.remove(), 1000);
+        }
+
+        function playErrorSound() {
+            const audio = new Audio('https://www.soundjay.com/button/beep-07.wav');
+            audio.play();
+        }
+
+        function startGame() {
+            const playerName = document.getElementById('playerName').value;
+            if (!playerName) {
+                alert('يرجى إدخال اسمك قبل البدء!');
+                return;
+            }
+
+            score = 0;
+            time = 0;
+            document.getElementById('score').textContent = `النقاط: ${score}`;
+            document.getElementById('time').textContent = `الوقت: ${time} ثانية`;
+            document.getElementById('startButton').classList.add('hidden');
+
+            timerInterval = setInterval(() => {
+                time++;
+                document.getElementById('time').textContent = `الوقت: ${time} ثانية`;
+            }, 1000);
+
+            generateQuestion();
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            const playerName = document.getElementById('playerName').value;
+            document.getElementById('question').textContent = `تهانينا ${playerName}! وصلت إلى 100 نقطة في ${time} ثانية.`;
+            document.getElementById('startButton').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
+
+
+
